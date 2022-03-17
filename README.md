@@ -2,7 +2,7 @@
 
 ## Part1 - 함수형으로 사고하기
 
-### Chapter1. 함수형으로 길들이기
+### [Chapter1. 함수형으로 길들이기](./Chapter1/Chapter1.md)
 
 ### Chapter2. 고계 자바스크립트
 
