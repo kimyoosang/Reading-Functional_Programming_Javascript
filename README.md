@@ -10,7 +10,7 @@
 
 ## Part2 - 함수형으로 전환하기
 
-### Chapter3. 자료구조는 적게 일은 더 많이
+### [Chapter3. 자료구조는 적게 일은 더 많이](./Chapter3/Chapter3.md)
 
 ### Chapter4. 재사용 가능한, 모듈적인 코드로
 
