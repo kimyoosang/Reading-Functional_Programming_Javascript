@@ -191,3 +191,146 @@
   ```
 
 - 렌즈는 불변 래퍼라는 보호막을 제공할 뿐만 아니라, 필드에 접근하는 로직을 객체로부터 분리하여 this에 의존할 일을 없애고, 어떤 객체라도 그 내용물에 접근하여 조작할 수 있는 강력한 함수를 내어주겠다는 FP 철학과도 잘 어올린다
+
+## **2.3 함수**
+
+- 함수형 프로그래밍에서 함수는 작업의 기본 단위이다. 만사가 함수를 중심으로 행해진다
+- **함수**는 연산자를 적용하여 평가할 수 잇는 모든 호출 가능 표현식을 가리키며, 호출자에게 계산한 값 또는 undefined를 반환한다. FP의 함수는 수학책에 나오는 함수처럼 **사용 가능한 결과**를 낼 경우에만 유의미하며, 그 외에는 외부 데이터 ㅂ녀경 등의 부수효과를 일으킨다고 볼 수 있다
+
+### **2.3.1 함수를 일급 시민으로**
+
+- 자바스크립트 함수는 실제로 객체이기 때문에 **일급**이며, 일급 시민이라고도 한다
+- 예 1: 일반적으로 선언하는 형식의 함수
+
+  ```javascript
+  function multipiler(a, b) {
+    return a * b;
+  }
+  ```
+
+- 예 2: 여러 방법으로 선언한 함수
+
+  - 익명함수 또는 람다 표현식으로 변수에 할당하기
+
+  ```javascript
+  const square = function(x) { //익명 함수
+    return x * x
+  }
+  const square= x => x * x
+
+  //객체 속성에 메서드 형태로 할당할 수 있다
+  const obj = {
+    method: function(x) {
+      retrun x * x
+    }
+  }
+  ```
+
+  - (많이 쓰이진 않지만) 생성자를 통해 함수를 인스턴스화 하는 방법도 있다. 생성자는 정규 매개변수 세트와 함수 본체, 그리고 new 키워드로 만든다
+
+  ```javascript
+  const multipiler = new Function("a", "b", "return a * b");
+
+  multipiler(2, 3); //6
+  ```
+
+- 자바스크립트 함수는 모두 Function 형식의 인스턴스이다. 함수의 length 속성은 정규 메개변수 개수를 나타내며, apply()와 call() 메서드는 함수를 주어진 콘텐스트로 호출한다
+- 익명 함수 표현식의 우변은 name 속성이 빈 함수 객체다. 익명 함수는 어떤 함수의 기능을 확장하거나 특화시킬 때 인수로 전달한다
+- sort()같은 자바스크립트 함수는 값을 할당할 수 있으면서도 다른 함수도 인수로 받을 수 있으므로 고계함수 범주에 속한다
+
+### **2.3.2 고계함수**
+
+- 함수도 작동 원리는 일반 객체와 같아서 함수 인수로 전달하거나 함수를 반환받을 수 있다. 이런 함수를 **고계함수**라고 한다
+- 자바스크립트 함수는 일급 + 고계여서 **여느 값이나 다름없다**. 즉, 자신이 받은 입력값을 기반으로 정의된 언젠가는 실행될 값에 디나지 않는다. 이는 모든 함수형 프로그래밍에 깊숙이 자리잡은 기본 원리이다
+- 함수 체인을 구성할 때엔 전체 표현식의 요솔 실행할 프로그램 조각을 항상 함수명으로 가리킨다
+- 작은 프로그램 조각에서 고계함수를 조합하여 유의미한 표현식을 만들기도 한다
+- 예 1: 미국 거주자 명단을 출력하는 프로그램 (명령형)
+
+  ```javascript
+  function printPeoplentheUs(people) {
+    for(let i=0l i< people.length; i++) {
+      var thisPerson = people[i]
+      if(thisPerson.address.country === 'US') {
+        console.log(thisPerson)
+      }
+    }
+  }
+
+  printPeopleInTheUs([p1, p2, p3])
+  ```
+
+  - 자바스크립트 함수는 일급이라서 일단 변수에 할당한 뒤 나중에 실행하도 된다
+
+- 예 2: 미국 거주자 명단을 출력하는 프로그램 (고계함수 사용)
+
+  ```javascript
+  function printPeople(people, selector, printer) {
+    people.forEach(function(person) {
+      if(selector(person ){
+        printer(person)
+      })
+    })
+  }
+
+  const inUs = person => person.address.country === 'US'
+
+  printPeople(people, inUs, console.log)
+  ```
+
+### **2.3.3 함수 호출 유형**
+
+- 자바스크립트 함수는 호출 시점의 런타임 콘텐스트, 즉 함수 본체 내부의 this 값을 자유롭게 지정할 수 있으며 호출하는 방법도 다양하다
+
+  1. 전역 함수로 호출
+
+  - this 래퍼런스는 전역 개체, 또는 undefined(엄격 모드)를 가리킨다
+
+  ```javascript
+  function doWord() {
+    this.myVar = "어떤 값";
+  }
+  doWord();
+  ```
+
+  2. 메서드로 호출
+
+  - this 레퍼런스는 해당 메서드를 소유한 객체이다
+
+  ```javascript
+
+  var obj = {
+    prop: '어떤 속성',
+    getProp: function() {
+      retrun this.prop
+    }
+  }
+  obj.getProp()
+  ```
+
+  3. 앞에 new를 붙여 생성자로 호출
+
+  - 새로 만든 객체의 레퍼런스를 암시적으로 반환한다
+
+  ```javascript
+  function MyType(arg) {
+    this.prop = arg;
+  }
+  var someVal = new MyType("어떤 인수");
+  ```
+
+- 다른 프로그래밍 언어와는 달리 this 래퍼런스가 가리키는 대상은 어휘적 콘텍스트가 아니라 함수를 사용하는 방법에 따라 다라진다. 이런 특성 탓에 정말 이해하기 어려운 코드가 될 수 있으므로 함수가 실행되는 콘텍스트를 잘 살펴야 한다
+- 함수형 코드에서는 this를 쓸일이 거의 없다
+
+### **2.3.4 함수 메서드**
+
+- 자바스크립트 함수는 프로토타입에 소속된 apply와 call 메서드로도 호출할 수 있다. API 사용자가 기존 함수에서 새 함수를 간단히 만들어 쓰는 용도로 많이 쓴다
+- apply와 call의 사용방법은 같다. 전자는 인수 배열을, 후자는 인수를 목록으로 받는 점만 다르다. 첫 번째 인수 thisArg를 이용하면 함수 콘텍스트를 입맛에 맞게 바꿀 수 있다
+
+  ```javascript
+  Function.prototype.apply(thisArg, [매개변수 배열])
+  Function.prototype.call(thisArg, arg1, arg2, ...)
+  ```
+
+- thisArg가 어떤 객체면 그 객체가 메서드의 호출자로 세팅된다. 그러나 thisArg가 null이면 전역 객체가 함수 콘텍스트가 되어 마치 전역 함수처럼 작동하는데, 엄격 모드에서 실행하면 실제 null값 그대로 세팅된다
+- thisArg로 함수 컨텍스트를 바꿀 수 있기 때문에 별의별 기법이 끼를 펼칠 멍석이 깔린 셈이다. 함수형 프로그램은 콘텍스트 상태에 절대로 의존하지 않기 때문에 이런 꼼수는 통하지 않는다
+- 전역 공유 객체, 객체 콘텍스트 등은 함수형 자바스크립트에서 거의 쓸모없는 개념이지만, 함수 콘텍스트는 잘 알아두어야 한다
