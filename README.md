@@ -12,7 +12,7 @@
 
 ### [Chapter3. 자료구조는 적게 일은 더 많이](./Chapter3/Chapter3.md)
 
-### Chapter4. 재사용 가능한, 모듈적인 코드로
+### [Chapter4. 재사용 가능한, 모듈적인 코드로](./Chapter4/Chapter4.md)
 
 ### Chapter5. 복잡성을 줄이는 디자인 패턴
 
