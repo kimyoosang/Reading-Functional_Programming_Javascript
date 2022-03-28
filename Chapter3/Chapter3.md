@@ -208,3 +208,120 @@
 
   _(person).filter(bornIn1903).map(fullname).join(" and");
   ```
+
+## **3.4 코드 헤어라기**
+
+- '코드를 헤어린다'는 뜻은 프로그램의 일부만 들여다봐도 무슨 일을 하는 코드인지 메털 모델을 쉽게 구축할 수 있다는 의미다
+- **멘털 모델**이란 전체 변수의 상태와 함수 출력 같은 동적인 부분뿐만 아니라 설계 가독성 및 표현성 같은 정적인 측면까지 포괄하는 개념이다
+- 불변성과 순수함수가 이러한 멘털 모델 구축을 더 용이하게 해준다
+
+### **3.4.1 선언적 코드와 느긋한 함수 체인**
+
+- FP의 선언적 모델에 따르면, 프로그램이란 개별적인 순수함수들을 평가하는 과정이라고 볼 수 있다
+- 그래서 필요 시 코드의 흐름성과 표현성을 높이기 위한 추상화 수단을 지원하며, 이렇게 함으로써 개발하려는 애플리케이션의 실체를 명확하게 쵸현하는 온톨로지 또는 어휘집을 만들 수 있다
+- map, reduce, filter라는 구성 요소를 바탕으로 순수함수를 쌓아가면 자연스래 한눈에 봐도 흐름이 읽히는 코드가 완성된다
+- 이 정도 수준으로 추상화하면 비로소 기반 자료구조에 영향을 끼치지 않는 방향으로 연산을 바라볼 수 있다. 이론적으로 말해서 배열, 연결 리스트, 이진 트리 등 어떤 자료구조를 쓰더라도 프로그램 자체 의미가 달라져선 안된다. 그래서 함수형 프로그래밍은 자료구조보다 연산에 더 중점을 둔다
+- 예 1-1: 이름 리스트를 읽고 데이터를 정제 후, 중복은 제거하고 정렬하는 코드 (명령형)
+
+  ```javascript
+  //문자열 형식이 제각각인 데이터
+  var names = ["alonze church", "Haskell curry", "stepthen_kleene"];
+
+  var result = [];
+  for (let i = 0; i < names.length; i++) {
+    var n = names[i];
+    if (n !== undefined && n !== null) {
+      var ns = n.replace(/_/, " ").split(" ");
+      for (let j = 0; j < ns.length; j++) {
+        var p = ns[j];
+        p = p.charAt(0).toUpperCase() + p.slice(1);
+        ns[j] = p;
+      }
+      if (result.indexOf(ns.join(" ")) < 0) {
+        result.push(ns.join(" "));
+      }
+    }
+  }
+  result.sort();
+  ```
+
+- 결과는 제대로 나오지만 명령형 코드의 단점은 특정 문제의 해결만을 목표한다는 것이다
+- 예 1-1 역시 함수형보다 훨씬 저수준에서 추상한 코드로서 한 가지로 용도로 고정된다. 추상화 수준이 낮을수록 코드를 재사용할 기회는 줄어들고 에러 가능성과 코드 복잡성은 증가한다
+- 반면, 함수형 프로그램은 블랙박스 컴포넌트르 서로 연결만 해주고, 뒷일은 테스트까지 마친 검증된 API에게 모두 맡긴다
+- 예 1-2: 이름 리스트를 읽고 데이터를 정제 후, 중복은 제거하고 정렬하는 코드 (명령형)
+
+  ```javascript
+  _.chain(namse)
+    .filter(isValid)
+    .map((s) => s.replace(/_/, " "))
+    .uniq()
+    .map(_.startCase)
+    .sort()
+    .value();
+  ```
+
+  - names 배열을 정확한 인덱스로 순회하는 등 버거운 일은 모두 _.filter와 _.map 함수가 대행하므로 그저 나머지 단계에 대한 프로그램 로직을 구현하면 된다
+  - uniq로 중복 데이터를 집어내고 \_.startCase로 각 단어의 첫자를 대문자로 바꾼다음, 자미가에 알파벳 순으로 정렬한다
+
+예 2: 국가별 인구를 계산하는 gatherStats 코드
+
+```javascript
+
+const gatherStats = function(start, country) {
+  if(!isValid(stat([country])) {
+    stat[country] = {'name':country, 'count':0}
+  }
+  stat[country].count++
+  return stat
+}
+
+//Person 배열에 데이터 집어넣기
+const p5 = new Person('David', 'Hilbert', '555-55-5555')
+p5.address = new Address('Germany')
+p5.birthYear = 1903
+
+//인구가 가장 많은 국가를 반환하는 프로그램
+_.chain(persons)
+  .filter(isValid).
+  map(_.property('address.country'))
+  .reduce(gatherStats, {})
+  .values()
+  .sortBy('count')
+  .reverse()
+  .first()
+  .value()
+  .name
+
+```
+
+- \_.chain 함수는 주어진 입력을 원하는 출력으로 변환하는 연산들을 연결함으로써 입력 객체의 상태를 확장한다
+- \_(...) 객체로 단축 표기한 구분과 달리, 이 함수는 임의의 함수를 명사적으로 체이닝 가능한 함수로 만든다. 프로그램이 조금 복잡해 보이긴 하지만, 변수를 만들거나 루프를 돌리는 일 따위는 할 필요가 없다
+- \_.chain을 쓰면 복잡한 프로그램을 느긋하게 작동시키는 장점도 있다. 제일 끝에서 value()함수를 호풀하기 전에는 아무것도 실행되지 않는다
+- 결괏값이 필요없는 함수는 실행을 건너뛸 수 있어서 애플리케이션 성능에 엄청난 영향을 미친다
+- 부드럽게 작동하는 건 FP의 근본 원리인, 부수효과 없는 순수함수 덕분이다. 체인에 속한 각 함수는 이전 단계의 함수가 제공한 새 배열에 자신의 불변 연산을 적용한다
+- 프로그램 파이프라인을 느긋하게 정의하면 가독성을 비롯해 여러모로 이롭다. 느긋한 프로그램은 평가 이전에 정의하기 때문에 자료구조를 재사용하거나 메서드를 융합하여 최적화할 수 있다
+
+### **3.4.2 유사 SQL 데이터: 데이터로서의 함수**
+
+- map, reduce, groupBy, sortBy, uniq 등의 함수는 SQL 구분을 쏙 빼닮았다
+- 쿼리 언어를 구사하듯 개발하는 것과 함수형 프로그래밍에서 배열에 연산을 적용하는 것은 일맥상통하다. 함수형 프로그래밍은 흔히 사용되는 어휘집이나 대수학 개념을 활용해서 데이터 자체의 성격과 구조 체계를 더 깊이 추론할 수 있게 도움을 준다
+
+  ```sql
+  SELECT p.firstname FROM Person p
+  WHERE p.birthYear > 1903 and p.country IS NOT 'US'
+  GROUP BY p.firstname
+  ```
+
+- 로대시JS가 지원하는 **믹스인** 기능을 응용하면, 핵심 라이브러리에 함수를 추가하여 확장한 후, 마치 원래 있던 함수처럼 체이닝할 수 있다
+
+예 1: 자바스크립트를 SQL 비슷하게 작성하기
+
+```javascript
+_.from(persons)
+  .where((p) => p.birthYear > 1900 && p.address.country !== "US")
+  .sortBy(["firstname"])
+  .select((p) => p.firstname)
+  .value();
+```
+
+- 자바스크립트 코드도 SQL 처럼 데이터를 함수 형태로 모형화할 수 있는데, 이를 **데이터로서의 함수**라는 개념으로 부르기도 한다
