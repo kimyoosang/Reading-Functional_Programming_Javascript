@@ -1,1 +1,253 @@
 # Chapter4. 재사용 가능한, 모듈적인 코드로
+
+- 대규모 소프트웨어 프로젝트에서 매우 중요한 특성 중 하나인 **모듈성**은, 프로그램을 더 작고 독립적인 부분으로 나눌 수 있는 정도를 뜻한다
+- 모듈적 프로그램은 자신을 구성하는 부속들로부터 자신의 의미를 도출할 수 있다는 점에서 뚜렷이 구분된다. 이들 부속 (하위 프로그램)은 다른 시스템에 그대로 또는 더 쪼개서 통합할 수 있는 재사용 가능한 컴포넌트이다. 개발자의 생산성을 높일 뿐만 아니라 코드 유지보수성 및 가독성을 향상시키는 데에도 도움이 된다
+
+## **4.1 메서드 체인 대 함수 파이프라인**
+
+### **4.1.1 메서드를 여럿 체이닝**
+
+```javascript
+_.chain(namse)
+  .filter(isValid)
+  .map((s) => s.replace(/_/, " "))
+  .uniq()
+  .map(_.startCase)
+  .sort()
+  .value();
+```
+
+- 위 코드는 명령형 코드에 비해 분명히 구조적으로 향상돘고 가독성도 엄청 좋아졌다. 다만, 자신을 소유한 객체에 부자연스럽게 매여있어 아쉽게도 체인에서 실행 가능한 메서드 가짓수가 줄고 코드의 표현성도 제약을 받는다
+- 이 예제는 로대시JS가 제공하는 연산만 쓸 수 있기 때문에 다른 라이브러리 함수를 쉽게 연결할 수 없다
+- 여기서 체인을 끊어버리고 독립적인 함수열을 자유롭게 배열할 수 있게 하는 것이 바로 **함수 파이프 라인**이 필요한 이유다
+
+### **4.1.2 함수를 파이프라인에 나열**
+
+- 함수형 프로그래밍에서는 메서드 페이닝의 한계에서 벗어나, 출신에 관계없이 어떤 함수라도 유연하게 결합할 수 있다
+- **파이프라인**이란 한 함수의 출력이 다음 함수의 입력에 되게끔 느슨하게 배열한, 방향성 함수 순차열이다
+- 체이닝은 객체 메서드를 통해 함수들을 단단히 결합하지만, 파이프라인은 함수 입출력을 서로 연결 지어 느슨하게 결합된 컴포넌트를 만든다. 단, 함수의 향수(인수 개수)와 형식이 호환되지 않으면 연결할 수 없다
+
+## **4.2 함수 호환 요건**
+
+- 객체지향 프로그램에서는 파이프라인을 특정한 경우(보통 인증/인가 처리)에 드문드문 사용하지만, 함수형 프로그래밍에서는 파이프라인이 프로그램을 구축하는 유일한 수단이다
+- 일을 하다 보면 대부분 정의된 문제와 그 해결 방안 간에 차이점이 생기게 마련이므로 단계별로 명확하게 정의된 계산을 해야한다. 이 계산 단계가 코드에서는 함수로 표현되는데, 각 함수는 두 가지 측면에서 입력과 출력이 호환돼야 한다
+  1. 형식
+  - 한 함수의 반환 형식과 수신 함수의 인수 형식이 일치해야 한다
+  2. 함수
+  - 수신 함수는 앞 단계 함수가 반환한 값을 처리하기 위해 적어도 하나 이상의 매개변수를 선언해야 한다
+
+### **4.2.1 형식이 호환되는 함수**
+
+- 함수 파이프라인을 설계할 때는 한 함수가 반환하는 것과 다른 함수가 받는 것이 반드시 호환되어야 한다. 형식은 정적 형식언어에서는 큰 관심사지만 자바스크립트는 형식이 느슨한 언어라서 그렇지 않다
+- 어떤 객체가 실제로 특정 형식처럼 작동하면 그 형식은 그냥 그 객체의 형식인 것이다. 이것을 다른 말로 **덕 타이핑**이라고 한다
+- 자바스크립트는 동적 파견 체제 덕분에 형식과 무관하게 객체에서 속성과 메서드를 가져올 수 있다. 매우 유연한 구조이지만, 함수가 어떤 형식의 값을 기대하는지 알아야 할 떄가 있어서 형식을 명확하게 정의하면 프로그램을 이해하는 게 더 쉬워진다
+
+- 예 1: trim과 nrmalize로 함수 파이프라인을 수동으로 구성
+
+  ```javascript
+
+  const trim = (str) => str.replace(/^\s*|\s$/g,'')
+
+  const normalize = (str) = str.replace(/\-g,'')
+
+  normalize(trim('444-44-4444')) //444444444
+
+  ```
+
+  - 형식은 틀림없이 중요한 이슈지만, 자바스크립트에서는 함수가 취하는 인수 개수의 호환 여부가 더 중요하다
+
+### **4.2.2 함수와 향수: 튜플**
+
+- **향수**란 함수가 받는 인수의 개수이다. 함ㅅ의 **길이**라고도 한다
+- 다른 프로그래밍에서는 향수를 당연하게 생각하지만, FP에서는 함수에 선언된 인수의 개수가 참조 투명성의 당연한 결과로서 복잡도와 정확히 비례하는 경우가 많다. 가령 문자열 인수를 하나만 받는 함수는 서너 개 받는 함수보다 훨씬 단순하다고 볼 수 있다
+- 인수가 1개인 순수함수는 한 가지 용도, 즉 단일 책임을 담당하므로 가장 단순한 함수라고 볼 수 있다. 함수의 인수를 가능한 한 적게 만들면 인수가 많은 함수보다 더 유연하고 다목적으로 활용할 수 있다
+- 두 가지 다른 값을 동시에 반환하기 위해서는 함수형 언어는 **튜플**이라는 자료구조를 지원한다. 튜플은 유한 원소를 지닌 정렬된 리스트로, 보통 한 번에 두세 개 값을 묶어 (a,b,c)와 같이 사용한다
+- 튜플은 형식이 다른 원소를 한데 묶어 다른 함수에 건네주는 일이 가능한 불변성 자료구조이다
+- 함수간에 데이터를 반환할 때는 튜플이 유용하다
+  1. 불변성
+  - 튜플은 한번 만들어지면 나중에 내용을 못 바꾼다
+  2. 임의 형식의 생성 방지
+  - 튜플은 전혀 무관한 값을 서로 연관지을 수 있다. 단지 데이터를 묶겠다고 새로운 형식을 정의하고 인스턴스화하는 건 괜스레 데이터 모형을 복잡하게 할 뿐이다
+  3. 이형 배열의 생성방지
+  - 형식이 다른 원소가 배열에 섞여 있으면 형식을 검사하는 방어 코드를 수반하므로 다루기가 까다롭다ㅏ. 배열은 태생 자체가 동일한 형식의 객체를 담는 자료구조이다
+- 자바스크립트는 스칼라 등의 함수형 언어와 달리 튜플 자료형을 처음부터 지원하지 않는다. 자바스크립트 개발자는 직접 알아서 자신만의 튜플을 구현하여 쓰면 된다
+- 예 1: 형식화한 튜플 자요형
+
+  ```javascript
+  const Tuple = function () {
+    const typeInfo = Array.prototype.slice.call(arguments);
+    const _T = function () {
+      const values = Array.prototype.slice.call(arguments);
+      if (values.some((val) => vall === null || val === undefined)) {
+        throw new ReferenceError("튜플은 null값을 가질 수 없습니다");
+      }
+      if (values.length !== typeInfo.length) {
+        throw new TypeError("튜플 향수가 프로토타입과 맞지 않습니다");
+      }
+      values.forEach((val, index) => {
+        this["_" + (index + 1)] = checkType(typeInfo[index])(val);
+      }, this);
+      Object.freeze(this);
+    };
+    _T.prototype.values = () => {
+      return Object.keys(this).map((k) => this[k], this);
+    };
+    return _T;
+  };
+  ```
+
+  - 튜플 객체는 크기가 고정된 불변성 자료구조로, 함수 간 통신에 사용 가능한 n개의 이형 값을 담을 수 있다
+  - 예를 들어 간단히 Status같은 값 객체를 만들어 쓰면 이렇게 된다
+
+  ```javascript
+  const Status = Tuple(Boolean, String);
+  ```
+
+- 예 2: 투플을 이용한 inValid 함수
+
+  ```javascript
+
+  const trim = (str) => str.replace(/^\s*|\s$/g,'')
+
+  const normalize = (str) = str.replace(/\-g,'')
+
+  const isValid = function(str) {
+  if(str.length === 0)
+  return new Status(false,'잘못된 입력입니다. 빈 값일 리 없지요!')
+  }
+  else {
+    return new Status(true, '성공!')
+  }
+
+  isValid(normalize(strim('444-44-4444'))) //(true, 성공)
+
+  ```
+
+  - ES6부터 지원하는 **해체 할당**과 조합하면 튜플 값을 변수로 깔끔하게 매필할 수 있다
+
+- 예 3: StringPair 형식
+
+  ```javascript
+  const StringPair = Tuple(String, String);
+  const name = (new StringPair("Barkley", "Rosser")[(first, last)] =
+    name.value());
+  first; //'Barkley'
+  second; //'Rosser'
+
+  const fullname = new StringPair("J", "Barkley", "Rosser"); //향수가 맞지 않아 에러가 발생한다
+  ```
+
+- 튜플로 함수 향수를 줄일 순 있지만, 튜플만으로 만족스럽지 못할 땐 더 나은 대체 방안이 있다. 향수를 추상하는 동시에 모듈성, 재사용성을 높이는 함수 커링이라는 방법이다
+
+## **4.3 커리된 함수를 평가**
+
+- 커링을 이해하려면 먼저, 일반(비커리된)평가와 커리된 평가의 차이점을 분명히 인지해야 한다. 자바스크립트에서는 비커리된 일반 함수를 호출할 때 인수가 모자라도 별문제 없이 실행된다. 이를테면 함수 f(a,b,c)를 호출할 때 a 값만 넣어도 자바스크립트 런타임은 b,c를 undefined로 자동 세팅하므로 f함수는 정상적으로 실행된다
+- 인수를 선언하지 않고 함수 안에서 arguments 객체에 전적으로 의존하는 건 문제를 키울 위험이 있다
+- 이와 다릴 모든 매개변수가 명시된 커리된 함수에 일부 인수만 넣어 호출하면, 함수가 실행되는게 아니라 모자란 나머지 인수가 다 채워지기를 기다리는 새로운 함수가 반환된다
+- **커링**은 다변수 함수가 인수를 전부 받을 때까지 실행을 보류, 또는 '지연'시켜 단계별로 나뉜 단항 함수의 순차여러로 전환하는 기법이다
+- 자바스크립트로는 자동으로 함수를 커리할 수 없으므로 어쩔 수 없이 직접 코드를 구현해야 한다
+- 예 1: 람다JS 라이브러리를 사용하여 커리 구현
+
+  ```javascript
+  const checkType = R.curry((typeDef, obj) => {
+    if (!R.is(typeDef, obj)) {
+      let type = typeof obj;
+      throw new TypeError(
+        `형식 불인치: ${typeDef}이어야 하는데, [${type}]입니다`
+      );
+    }
+    return obj;
+  });
+
+  checkType(String); //'Curry'
+  checkType(Number)(3); //3
+  checkType(Number)(3.5); //3.5
+
+  let now = new Date();
+  checkType(Date)(now); //now
+  checkType(Object)({}); //{}
+  ```
+
+  - R.curry를 쓰면 인수 개수에 상관없이 순수 함수형 언어의 자동 커링 장치를 모방할 수 있다. 자동 커링은 선언된 인수 개수만큼 중첩된 함수 스코프를 인위적으로 생성하는 작업이라고 보면 된다
+
+- 예 2: fullname을 커리한 코드
+
+  ```javascript
+  const fullname = function(first, last) {
+    ....
+  }
+
+  //여러 인수가 다음과 같이 여러 단항 함수들로 바뀐다
+  const fullname = function(first) {
+    return function(last) {
+      ...
+    }
+  }
+  ```
+
+- 커링은 실무에서는 유명한 다음 디자인 패턴을 구현할 때 많이 사용한다
+  1. 함수 팩토리를 모방
+  2. 재사용 가능한 모듈적 함수 템플릿을 구현
+
+### **4.3.1 함수 팩토리를 모방**
+
+- 객체지향 세계에서 인터페이스는 클래스가 반드시 구현해야 할 규약을 정해놓은 추상적 형식이다
+- 예 1: 각각 저장소와 배열에 보관된 학생 객체를 조회하는 함수
+
+  ```javascript
+  const fechStudentFromDb = R.curry(function(db,ssn)) {
+    return arr[ssn]
+  }
+  ```
+
+  - 이 함수는 커리를 해놔서 일반 팩토리 메서드 findStudent로 평가하는 부분과 함수를 정희한 부분을 뗴어놓을 수 있다
+
+  ```javascript
+  const findStudent = useDb ? fetchStudentFromDb(db) : fetchStudentFromArray;
+
+  findStudent("444-44-4444");
+  ```
+
+  - 이제 다른 모듈의 호출자는 실제 구현부를 알지 못해도 얼마든지 findStudent를 불러 쓸 수 있다
+
+- 커링은 재사용 측명에서도 함수 템플릿을 여러 만들 수 있어 좋다
+
+### **4.3.2 재사용 가능한 함수 템플릿 구현**
+
+- 애플리케이션의 상태별로 로그를 나누어 처리하고 싶은 경우가 있다. 함수 템플릿은 생성 시점에 인수 개수를 기준으로 연관된 함수들을 묶어놓은 것이다
+- 여기서 예제는 자바스크립트용 로깅 프레임워크인 Log4Js를 사용한다
+- 예 1: 로거 함수 템플릿을 만듧
+
+  ```javascript
+
+  const logger = function(appender, layout, name, leval, message) {
+    const appenders = [
+      'alert': new Log4Js.JSAlertAppender(),
+      'console':new Log4Js.BrowserConsoleAppender()
+      ]
+    const layouts = [
+      'basic': new Log4Js.BasicLayout(),
+      'json': new Log4Js.JSONLayout(),
+      'xml': new Log4Js.XMLLAyout()
+    ]
+    const appender = appenders[appender]
+    appender.setLayout(layouts[layout])
+    const logger = new Log4Js.getLogger(name)
+    logger.addAppender(appender)
+    logger.log(level, message, null)
+  }
+
+  // 로거를 커리하면 상황별로 적합한 로거를 모두 한곳에서 관리하고 재사용할 수 있다
+  const log = R.curry(logger)('alert','json','FJS')
+  log('ERROR', '에러가 발생하였습니다!')
+
+  //여러 에러 처리 구분을 하나의 함수나 파일로 구현하고 싶으면, 유연하게 마지막 매개변수를 제외한 나머지 매개변수를 부분 세팅하면 된다
+  const log = R.curry(logger)('alert','basic','FJS','ERROR')
+  logError('코드 404 에러가 발생했습니다')
+  logError('코드 402 에러가 발생했습니다')
+  ```
+
+  - 내부적으로는 이 함수에 curry 함수를 연속 호출해서 결국 단항 함수 하나만 남을 것이다. 기본 함수에서 새 함수를 맏르고 매개변수는 몇개라도 전달 가능하니 인수가 정해질 때마다 단계별로 함수를 올릴 수 있다
+
+- 재사용성이 획기적으로 향상되는 것도 장점이지만, 무엇보다 커링의 가장 중요한 의의는 다인수 함수를 단한 함수로 바꾼다는 것이다
+- 커링의 부분 적용과 매개변수 바인딩은 자바스크립트에서도 어느 정도 지원되는 기법으로, 함수 파이프라인에 연결해도 잘 작동할 수 있도록 함수가 더 작은 함수를 만든다
