@@ -14,7 +14,7 @@
 
 ### [Chapter4. 재사용 가능한, 모듈적인 코드로](./Chapter4/Chapter4.md)
 
-### Chapter5. 복잡성을 줄이는 디자인 패턴
+### [Chapter5. 복잡성을 줄이는 디자인 패턴](./Chapter5/Chapter5.md)
 
 <br></br>
 
