@@ -138,3 +138,116 @@ _.chain(namse)
   ```
 
 - 튜플로 함수 향수를 줄일 순 있지만, 튜플만으로 만족스럽지 못할 땐 더 나은 대체 방안이 있다. 향수를 추상하는 동시에 모듈성, 재사용성을 높이는 함수 커링이라는 방법이다
+
+## **4.3 커리된 함수를 평가**
+
+- 커링을 이해하려면 먼저, 일반(비커리된)평가와 커리된 평가의 차이점을 분명히 인지해야 한다. 자바스크립트에서는 비커리된 일반 함수를 호출할 때 인수가 모자라도 별문제 없이 실행된다. 이를테면 함수 f(a,b,c)를 호출할 때 a 값만 넣어도 자바스크립트 런타임은 b,c를 undefined로 자동 세팅하므로 f함수는 정상적으로 실행된다
+- 인수를 선언하지 않고 함수 안에서 arguments 객체에 전적으로 의존하는 건 문제를 키울 위험이 있다
+- 이와 다릴 모든 매개변수가 명시된 커리된 함수에 일부 인수만 넣어 호출하면, 함수가 실행되는게 아니라 모자란 나머지 인수가 다 채워지기를 기다리는 새로운 함수가 반환된다
+- **커링**은 다변수 함수가 인수를 전부 받을 때까지 실행을 보류, 또는 '지연'시켜 단계별로 나뉜 단항 함수의 순차여러로 전환하는 기법이다
+- 자바스크립트로는 자동으로 함수를 커리할 수 없으므로 어쩔 수 없이 직접 코드를 구현해야 한다
+- 예 1: 람다JS 라이브러리를 사용하여 커리 구현
+
+  ```javascript
+  const checkType = R.curry((typeDef, obj) => {
+    if (!R.is(typeDef, obj)) {
+      let type = typeof obj;
+      throw new TypeError(
+        `형식 불인치: ${typeDef}이어야 하는데, [${type}]입니다`
+      );
+    }
+    return obj;
+  });
+
+  checkType(String); //'Curry'
+  checkType(Number)(3); //3
+  checkType(Number)(3.5); //3.5
+
+  let now = new Date();
+  checkType(Date)(now); //now
+  checkType(Object)({}); //{}
+  ```
+
+  - R.curry를 쓰면 인수 개수에 상관없이 순수 함수형 언어의 자동 커링 장치를 모방할 수 있다. 자동 커링은 선언된 인수 개수만큼 중첩된 함수 스코프를 인위적으로 생성하는 작업이라고 보면 된다
+
+- 예 2: fullname을 커리한 코드
+
+  ```javascript
+  const fullname = function(first, last) {
+    ....
+  }
+
+  //여러 인수가 다음과 같이 여러 단항 함수들로 바뀐다
+  const fullname = function(first) {
+    return function(last) {
+      ...
+    }
+  }
+  ```
+
+- 커링은 실무에서는 유명한 다음 디자인 패턴을 구현할 때 많이 사용한다
+  1. 함수 팩토리를 모방
+  2. 재사용 가능한 모듈적 함수 템플릿을 구현
+
+### **4.3.1 함수 팩토리를 모방**
+
+- 객체지향 세계에서 인터페이스는 클래스가 반드시 구현해야 할 규약을 정해놓은 추상적 형식이다
+- 예 1: 각각 저장소와 배열에 보관된 학생 객체를 조회하는 함수
+
+  ```javascript
+  const fechStudentFromDb = R.curry(function(db,ssn)) {
+    return arr[ssn]
+  }
+  ```
+
+  - 이 함수는 커리를 해놔서 일반 팩토리 메서드 findStudent로 평가하는 부분과 함수를 정희한 부분을 뗴어놓을 수 있다
+
+  ```javascript
+  const findStudent = useDb ? fetchStudentFromDb(db) : fetchStudentFromArray;
+
+  findStudent("444-44-4444");
+  ```
+
+  - 이제 다른 모듈의 호출자는 실제 구현부를 알지 못해도 얼마든지 findStudent를 불러 쓸 수 있다
+
+- 커링은 재사용 측명에서도 함수 템플릿을 여러 만들 수 있어 좋다
+
+### **4.3.2 재사용 가능한 함수 템플릿 구현**
+
+- 애플리케이션의 상태별로 로그를 나누어 처리하고 싶은 경우가 있다. 함수 템플릿은 생성 시점에 인수 개수를 기준으로 연관된 함수들을 묶어놓은 것이다
+- 여기서 예제는 자바스크립트용 로깅 프레임워크인 Log4Js를 사용한다
+- 예 1: 로거 함수 템플릿을 만듧
+
+  ```javascript
+
+  const logger = function(appender, layout, name, leval, message) {
+    const appenders = [
+      'alert': new Log4Js.JSAlertAppender(),
+      'console':new Log4Js.BrowserConsoleAppender()
+      ]
+    const layouts = [
+      'basic': new Log4Js.BasicLayout(),
+      'json': new Log4Js.JSONLayout(),
+      'xml': new Log4Js.XMLLAyout()
+    ]
+    const appender = appenders[appender]
+    appender.setLayout(layouts[layout])
+    const logger = new Log4Js.getLogger(name)
+    logger.addAppender(appender)
+    logger.log(level, message, null)
+  }
+
+  // 로거를 커리하면 상황별로 적합한 로거를 모두 한곳에서 관리하고 재사용할 수 있다
+  const log = R.curry(logger)('alert','json','FJS')
+  log('ERROR', '에러가 발생하였습니다!')
+
+  //여러 에러 처리 구분을 하나의 함수나 파일로 구현하고 싶으면, 유연하게 마지막 매개변수를 제외한 나머지 매개변수를 부분 세팅하면 된다
+  const log = R.curry(logger)('alert','basic','FJS','ERROR')
+  logError('코드 404 에러가 발생했습니다')
+  logError('코드 402 에러가 발생했습니다')
+  ```
+
+  - 내부적으로는 이 함수에 curry 함수를 연속 호출해서 결국 단항 함수 하나만 남을 것이다. 기본 함수에서 새 함수를 맏르고 매개변수는 몇개라도 전달 가능하니 인수가 정해질 때마다 단계별로 함수를 올릴 수 있다
+
+- 재사용성이 획기적으로 향상되는 것도 장점이지만, 무엇보다 커링의 가장 중요한 의의는 다인수 함수를 단한 함수로 바꾼다는 것이다
+- 커링의 부분 적용과 매개변수 바인딩은 자바스크립트에서도 어느 정도 지원되는 기법으로, 함수 파이프라인에 연결해도 잘 작동할 수 있도록 함수가 더 작은 함수를 만든다
